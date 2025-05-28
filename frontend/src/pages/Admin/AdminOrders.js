@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
-import { Search, Eye, Package, Calendar, Filter, User, MapPin, Phone, AlertCircle } from 'lucide-react';
+import { Search, Eye, Package, Calendar, Filter, User, MapPin, Phone, AlertCircle, X } from 'lucide-react';
 import { ordersAPI } from '../../services';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -15,6 +15,15 @@ const AdminOrders = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
+  
+  // Состояние для модального окна подтверждения
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    orderId: null,
+    newStatus: '',
+    orderNumber: '',
+    currentStatus: ''
+  });
 
   const statusOptions = [
     { value: '', label: 'Все статусы' },
@@ -25,8 +34,6 @@ const AdminOrders = () => {
     { value: 'delivered', label: 'Доставлен' },
     { value: 'cancelled', label: 'Отменен' }
   ];
-
-
 
   const loadOrders = async () => {
     try {
@@ -94,9 +101,42 @@ const AdminOrders = () => {
     loadOrders();
   }, []);
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  // Функция для открытия модального окна подтверждения
+  const openConfirmDialog = (orderId, newStatus, orderNumber, currentStatus) => {
+    setConfirmDialog({
+      isOpen: true,
+      orderId,
+      newStatus,
+      orderNumber,
+      currentStatus
+    });
+  };
+
+  // Функция для закрытия модального окна
+  const closeConfirmDialog = () => {
+    setConfirmDialog({
+      isOpen: false,
+      orderId: null,
+      newStatus: '',
+      orderNumber: '',
+      currentStatus: ''
+    });
+  };
+
+  // Обработчик изменения статуса через select
+  const handleStatusSelectChange = (orderId, newStatus, orderNumber, currentStatus) => {
+    if (newStatus !== currentStatus) {
+      openConfirmDialog(orderId, newStatus, orderNumber, currentStatus);
+    }
+  };
+
+  // Обработчик подтверждения изменения статуса
+  const handleConfirmStatusChange = async () => {
+    const { orderId, newStatus } = confirmDialog;
+    
     try {
       setActionLoading(orderId);
+      closeConfirmDialog();
 
       const response = await ordersAPI.updateOrderStatus(orderId, newStatus);
 
@@ -121,6 +161,11 @@ const AdminOrders = () => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  // Обработчик быстрых кнопок действий
+  const handleQuickAction = (orderId, newStatus, orderNumber, currentStatus) => {
+    openConfirmDialog(orderId, newStatus, orderNumber, currentStatus);
   };
 
   const handleViewDetails = (order) => {
@@ -168,6 +213,62 @@ const AdminOrders = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Модальное окно подтверждения
+  const ConfirmationModal = () => {
+    if (!confirmDialog.isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Подтверждение изменения статуса
+            </h3>
+            <button
+              onClick={closeConfirmDialog}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="mb-6">
+            <p className="text-gray-700 mb-2">
+              Вы уверены, что хотите изменить статус заказа?
+            </p>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="font-medium">Заказ #{confirmDialog.orderNumber}</p>
+              <p className="text-sm text-gray-600 mt-1">
+                <span className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor(confirmDialog.currentStatus)}`}>
+                  {getStatusText(confirmDialog.currentStatus)}
+                </span>
+                <span className="mx-2">→</span>
+                <span className={`inline-block px-2 py-1 rounded text-xs ${getStatusColor(confirmDialog.newStatus)}`}>
+                  {getStatusText(confirmDialog.newStatus)}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={closeConfirmDialog}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleConfirmStatusChange}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Подтвердить
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Показываем загрузку пока проверяется авторизация
   if (authLoading) {
     return (
@@ -193,6 +294,9 @@ const AdminOrders = () => {
 
   return (
     <AdminLayout title="Управление заказами" currentPage="orders">
+      {/* Модальное окно подтверждения */}
+      <ConfirmationModal />
+
       {/* Ошибка */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 flex items-center gap-2">
@@ -283,9 +387,9 @@ const AdminOrders = () => {
                 ) : (
                   <select
                     value={order.status}
-                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                    onChange={(e) => handleStatusSelectChange(order.id, e.target.value, order.orderNumber || order.id, order.status)}
                     disabled={actionLoading === order.id}
-                    className={`px-3 py-1 rounded-full text-sm font-medium border-0 ${getStatusColor(order.status)} disabled:opacity-50`}
+                    className={`px-3 py-1 rounded-full text-sm font-medium border-0 cursor-pointer ${getStatusColor(order.status)} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {statusOptions.slice(1).map(option => (
                       <option key={option.value} value={option.value}>
@@ -422,7 +526,7 @@ const AdminOrders = () => {
                 <>
                   {['pending', 'processing', 'confirmed'].includes(order.status) && (
                     <button
-                      onClick={() => handleStatusChange(order.id, 'delivering')}
+                      onClick={() => handleQuickAction(order.id, 'delivering', order.orderNumber || order.id, order.status)}
                       disabled={actionLoading === order.id}
                       className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                     >
@@ -433,7 +537,7 @@ const AdminOrders = () => {
 
                   {order.status === 'delivering' && (
                     <button
-                      onClick={() => handleStatusChange(order.id, 'delivered')}
+                      onClick={() => handleQuickAction(order.id, 'delivered', order.orderNumber || order.id, order.status)}
                       disabled={actionLoading === order.id}
                       className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                     >

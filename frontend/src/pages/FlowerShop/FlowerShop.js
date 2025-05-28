@@ -37,7 +37,6 @@ const FlowerShop = () => {
     budget: false,
     category: '',
     priceMin: 0,
-    priceMax: 50000
   });
 
   // Состояние для поиска и навигации
@@ -102,11 +101,10 @@ const FlowerShop = () => {
   // Функция для получения названия категории товара по ID навигации
   const getCategoryByNavId = (navId) => {
     const categoryMap = {
-      'flowers': ['Розы', 'Сборные букеты', 'Композиции'],
+      'flowers': ['Розы', 'Сборные букеты', 'Композиции', 'Комбо'],
       'plants': ['Комнатные растения'],
       'sweets': ['Сладости'],
       'toys': ['Игрушки'],
-      'combo': ['Комбо']
     };
     return categoryMap[navId] || [];
   };
@@ -130,7 +128,7 @@ const FlowerShop = () => {
     if (filters.ready && !product.isReady) return false;
     if (filters.budget && !product.isBudget) return false;
     if (filters.category && product.category !== filters.category) return false;
-    if (product.price < filters.priceMin || product.price > filters.priceMax) return false;
+    if (product.price < filters.priceMin ) return false;
 
     return true;
   });
@@ -189,7 +187,7 @@ const FlowerShop = () => {
                   {activeCategory === 'plants' && 'Комнатные растения'}
                   {activeCategory === 'sweets' && 'Сладости'}
                   {activeCategory === 'toys' && 'Игрушки'}
-                  {activeCategory === 'combo' && 'Комбо'}
+                  {activeCategory === 'flowers' && 'Цветы'}
                 </span>"
               </span>
             )}

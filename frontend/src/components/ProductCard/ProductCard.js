@@ -41,6 +41,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   useEffect(() => {
     setCurrentImageIndex(0);
     setImageError(false);
+    
   }, [product.id]);
 
   const handleCardClick = () => {
@@ -128,13 +129,14 @@ const ProductCard = ({ product, onAddToCart }) => {
   return (
     <>
       <div 
-        className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 product-card group cursor-pointer"
+        className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 product-card group cursor-pointer flex flex-col"
+        style={{ minHeight: '420px' }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleCardClick}
       >
         {/* Блок изображения */}
-        <div className="relative h-48 bg-gray-100 overflow-hidden">
+        <div className="relative h-48 bg-gray-100 overflow-hidden flex-shrink-0">
           {!imageError && currentImage ? (
             <img
               src={getImageUrl(currentImage)}
@@ -245,52 +247,58 @@ const ProductCard = ({ product, onAddToCart }) => {
           )}
         </div>
 
-        {/* Информация о товаре */}
-        <div className="p-4">
-          <h3 className="font-medium text-gray-800 mb-1 line-clamp-1 hover:text-gray-600 transition-colors">
-            {product.name}
-          </h3>
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {product.description || 'Описание товара'}
-          </p>
+        {/* Информация о товаре - растягивается на всю доступную высоту */}
+        <div className="p-4 flex flex-col flex-grow">
+          {/* Контент который может быть разной высоты */}
+          <div className="flex-grow">
+            <h3 className="font-medium text-gray-800 mb-1 line-clamp-2 hover:text-gray-600 transition-colors">
+              {product.name}
+            </h3>
+            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+              {product.description || 'Описание товара'}
+            </p>
 
-          <div className="flex items-center justify-between mb-3">
-            {renderPrice()}
-            
-            {product.rating > 0 && (
-              <div className="flex items-center gap-1">
-                <Star size={14} className="text-yellow-400 fill-current" />
-                <span className="text-sm text-gray-600">
-                  {parseFloat(product.rating).toFixed(1)}
-                </span>
-                {product.reviewCount > 0 && (
-                  <span className="text-xs text-gray-500">
-                    ({product.reviewCount})
+            <div className="flex items-center justify-between mb-3">
+              {renderPrice()}
+              
+              {product.rating > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star size={14} className="text-yellow-400 fill-current" />
+                  <span className="text-sm text-gray-600">
+                    {parseFloat(product.rating).toFixed(1)}
                   </span>
-                )}
-              </div>
-            )}
+                  {product.reviewCount > 0 && (
+                    <span className="text-xs text-gray-500">
+                      ({product.reviewCount})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={handleAddToCartClick}
-            disabled={product.inStock === 0}
-            className={`w-full py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2 font-medium ${
-              product.inStock === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-black text-white hover:bg-gray-800 hover:shadow-md transform hover:-translate-y-0.5'
-            }`}
-          >
-            <ShoppingCart size={16} />
-            {product.inStock === 0 ? 'Нет в наличии' : 'В корзину'}
-          </button>
+          {/* Кнопка всегда внизу */}
+          <div className="mt-auto">
+            <button
+              onClick={handleAddToCartClick}
+              disabled={product.inStock === 0}
+              className={`w-full py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2 font-medium mb-2 ${
+                product.inStock === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-black text-white hover:bg-gray-800 hover:shadow-md transform hover:-translate-y-0.5'
+              }`}
+            >
+              <ShoppingCart size={16} />
+              {product.inStock === 0 ? 'Нет в наличии' : 'В корзину'}
+            </button>
 
-          {/* Дополнительная информация */}
-          <div className="mt-2 flex justify-between text-xs text-gray-500">
-            <span>Категория: {product.category}</span>
-            {hasImages && images.length > 1 && (
-              <span>{images.length} фото</span>
-            )}
+            {/* Дополнительная информация */}
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Категория: {product.category}</span>
+              {hasImages && images.length > 1 && (
+                <span>{images.length} фото</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
